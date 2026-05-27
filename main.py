@@ -2,23 +2,18 @@ from fastapi import FastAPI, HTTPException, status
 
 from utils.get_bins import process_single_msn
 from utils.insert_bins import insert_data_to_posgres
-from utils.check_prev_phase import check_prev_phase, check_prev_phase_api
+from utils.check_prev_phase import check_prev_phase_api
 from utils.insert_prev_phase import insert_prev_phase_to_posgres
 from utils.update_task import update_task_on_done
+from utils.check_sn_machine_validation import check_task_done, check_validation
 
 from database import CONNECTION_STRING_POLMESPROD, CONNECTION_STRING_LOCAL_POSTGRES
 from models import BinRequest, PhaseIDRequest, FullCheck
 
 from pyodbc import connect
 from typing import List, Dict
-import psycopg2
 import psycopg
 
-import time
-import logging
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("api_timer")
 
 app = FastAPI()
 
@@ -43,7 +38,7 @@ async def bin_list_checker(requests: BinRequest):
         for sn in requests.sns:
             final_result[sn] = process_single_msn(cursor, sn)
     
-    with psycopg2.connect(CONNECTION_STRING_LOCAL_POSTGRES) as conn:
+    with psycopg.connect(CONNECTION_STRING_LOCAL_POSTGRES) as conn:
         cursor = conn.cursor()
         for key, value in final_result.items():
             insert_data_to_posgres(cursor, key, value) 
@@ -66,9 +61,7 @@ async def check_phase(request: PhaseIDRequest):
             print(f"Błąd podczas odpytywania API dla SN {sn}: {e}")
             api_responses[sn] = None
 
-    print(api_responses)
-
-    with psycopg2.connect(CONNECTION_STRING_LOCAL_POSTGRES) as conn:
+    with psycopg.connect(CONNECTION_STRING_LOCAL_POSTGRES) as conn:
         cursor = conn.cursor()
         for key, resp in api_responses.items():
             if resp is None:
@@ -86,43 +79,19 @@ async def check_phase(request: PhaseIDRequest):
         conn.commit()
         update_task_on_done(cursor, type_of_req, request.task_num)
 
+
 @app.post("/spea-serivce/check-sns/")
 def check_sns(payload: FullCheck) -> List[Dict]:
-    
     with psycopg.connect(CONNECTION_STRING_LOCAL_POSTGRES, row_factory=psycopg.rows.dict_row) as conn:
         with conn.cursor() as cur:
-            
-            cur.execute(
-                """
-                SELECT prev_done, bins_done 
-                FROM public.spea_service_tasknum 
-                WHERE unique_id = %s;
-                """,
-                (str(payload.task_num),)
-)
-            task = cur.fetchone()
-            
+            task = check_task_done(cur, payload.task_num)
             if not task or not (task['prev_done'] and task['bins_done']):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Task validation failed or columns are false"
                 )
             
-            cur.execute(
-                """
-                SELECT 
-                    sn, 
-                    bin,
-                    prev_phase, 
-                    phase_error_code
-                FROM public.spea_service_testedsn
-                WHERE sn = ANY(%s)
-                ORDER BY date_time DESC
-                """,
-                (payload.sns,)
-            )
-            rows = cur.fetchall()
-
+            rows = check_validation(cur, payload.sns)
             response_data = []
             for row in rows:
                 sn_key = row['sn']
@@ -134,5 +103,6 @@ def check_sns(payload: FullCheck) -> List[Dict]:
                     "phase_error_code": row['phase_error_code']
                 }
                 response_data.append(item_structure)
+            
 
             return response_data
