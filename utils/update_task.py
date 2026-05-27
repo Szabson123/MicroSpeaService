@@ -1,15 +1,16 @@
-def insert_prev_phase_to_posgres(cursor, key, return_code, return_code_desc):
-    query = """
-    UPDATE public.spea_service_testedsn
-    SET prev_phase = %s, phase_error_code = %s
-    WHERE id = (
-        SELECT id
-            FROM public.spea_service_testedsn 
-            WHERE sn = %s
-            ORDER BY date_time DESC 
-            LIMIT 1
-    )
-    """
-    return_code_to_db = True if return_code == 0 else False
+from psycopg2 import sql
 
-    cursor.execute(query, (return_code_to_db, return_code_desc, key))
+def update_task_on_done(cursor, req_type: str, task_uuid: str):
+    column_mapping = {
+        'bin': 'bins_done',
+        'phase_id': 'prev_done'
+    }
+    
+    column_name = column_mapping.get(req_type)
+    
+    if not column_name:
+        raise ValueError(f"Nieznany typ żądania: {req_type}")
+        
+    query = sql.SQL("UPDATE public.spea_service_tasknum SET {} = true WHERE unique_id = %s").format(sql.Identifier(column_name))
+    
+    cursor.execute(query, (str(task_uuid),))
