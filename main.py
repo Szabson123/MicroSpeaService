@@ -5,11 +5,12 @@ from utils.insert_bins import insert_data_to_posgres
 from utils.check_prev_phase import check_prev_phase_api
 from utils.insert_prev_phase import insert_prev_phase_to_posgres
 from utils.update_task import update_task_on_done
-from utils.check_sn_machine_validation import check_task_done, check_validation
+from utils.check_sn_machine_validation import check_task_done, check_validation, check_date
 
 from database import CONNECTION_STRING_POLMESPROD, CONNECTION_STRING_LOCAL_POSTGRES
 from models import BinRequest, PhaseIDRequest, FullCheck
 
+from datetime import datetime, timedelta
 from pyodbc import connect
 from typing import List, Dict
 import psycopg
@@ -22,11 +23,6 @@ app = FastAPI()
 async def root():
     return {"message": "Hello World"}
 
-
-# @app.get('/spea-serivce/lighting_linked_serial/{id}/')
-# async def lighting_linked_serial_func(id: str):
-#     data = main_lighting_linked_serials(id)
-#     return data
 
 @app.post('/spea-serivce/check-bins/')
 async def bin_list_checker(requests: BinRequest):
@@ -85,10 +81,30 @@ def check_sns(payload: FullCheck) -> List[Dict]:
     with psycopg.connect(CONNECTION_STRING_LOCAL_POSTGRES, row_factory=psycopg.rows.dict_row) as conn:
         with conn.cursor() as cur:
             task = check_task_done(cur, payload.task_num)
-            if not task or not (task['prev_done'] and task['bins_done']):
+            if not task:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Task validation failed or columns are false"
+                    detail="Provided task don't exist"
+                )
+            
+            if not (task['prev_done'] and task['bins_done']):
+                raise HTTPException(
+                    status_code=status.HTTP_200_OK,
+                    detail="This task is not ready yet"
+                )
+            
+            machine_status = check_date(cur, payload.machine_name)
+            if not machine_status:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"error": "Machine validation not found", "code": "Machine Invalidate"})
+            
+            expiration_time = machine_status['time_date'] + timedelta(hours=8)
+            if not machine_status['is_valid'] or expiration_time < datetime.now():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={
+                        "error": "Machine validation is invalid or expired (older than 8 hours)", 
+                        "code": "Machine Invalidate"
+                    }
                 )
             
             rows = check_validation(cur, payload.sns)
@@ -106,3 +122,5 @@ def check_sns(payload: FullCheck) -> List[Dict]:
             
 
             return response_data
+        
+    
