@@ -10,7 +10,7 @@ from utils.check_sn_machine_validation import check_task_done, check_validation,
 from database import CONNECTION_STRING_POLMESPROD, CONNECTION_STRING_LOCAL_POSTGRES
 from models import BinRequest, PhaseIDRequest, FullCheck
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pyodbc import connect
 from typing import List, Dict
 import psycopg
@@ -95,10 +95,16 @@ def check_sns(payload: FullCheck) -> List[Dict]:
             
             machine_status = check_date(cur, payload.machine_name)
             if not machine_status:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"error": "Machine validation not found", "code": "Machine Invalidate"})
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail={
+                        "error": "Machine validation not found",
+                        "code": "Machine Invalidate"
+                    }
+                )
             
             expiration_time = machine_status['time_date'] + timedelta(hours=8)
-            if not machine_status['is_valid'] or expiration_time < datetime.now():
+            if not machine_status['is_valid'] or expiration_time < datetime.now(timezone.utc):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail={
