@@ -19,7 +19,7 @@ import psycopg
 app = FastAPI()
 
 
-@app.get("/")
+@app.get("/spea-serivce/")
 async def root():
     return {"message": "Hello World"}
 
