@@ -10,12 +10,12 @@ def get_all_childs(cursor, id: str):
     return cursor.fetchall()
 
 def get_measure_bin(cursor, checking_id):
-    query = '''SELECT m.[Measure], m.[Item]
+    query = '''SELECT DISTINCT m.[Measure], m.[Item]
                FROM [Measure].[dbo].[HeaderDataLog] h
                INNER JOIN [Measure].[dbo].[MeasureDataLog] m ON h.IDMeasure = m.IDMeasure
                WHERE h.MSN = ?
                AND m.UnitMeasure = 'BIN_GROUP' '''
-    cursor.execute(query, checking_id)
+    cursor.execute(query, (checking_id,))
     rows = cursor.fetchall()
     return [(row[0], row[1]) for row in rows] if rows else []
 

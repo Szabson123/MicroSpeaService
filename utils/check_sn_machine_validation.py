@@ -6,11 +6,12 @@ def check_task_done(cur, task_num):
     return cur.fetchone()
 
 def check_validation(cur, sn):
-    query = """ SELECT sn, bin, prev_phase, phase_error_code FROM public.spea_service_testedsn
+    query = """ SELECT DISTINCT ON (sn) sn, bin, prev_phase, phase_error_code 
+                FROM public.spea_service_testedsn
                 WHERE sn = ANY(%s)
-                ORDER BY date_time DESC
+                ORDER BY sn, date_time DESC
             """
-    cur.execute(query, (sn, ))
+    cur.execute(query, (list(set(sn)), ))
     return cur.fetchall()
 
 def check_date(cur, machine_name):
