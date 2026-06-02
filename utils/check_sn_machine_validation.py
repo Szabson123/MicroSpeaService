@@ -1,4 +1,8 @@
 def check_task_done(cur, task_num):
+
+    if task_num is None:
+        return None
+    
     query = """SELECT prev_done, bins_done FROM public.spea_service_tasknum 
                 WHERE unique_id = %s;"""
 
@@ -25,5 +29,15 @@ def check_date(cur, machine_name):
     cur.execute(query, (machine_name,))
     return cur.fetchone()
 
-def check_fixture_counter_limit(cur, machine_name):
-    query = """SELECT """
+def check_force_validation(cur, machine_name):
+    query = """SELECT f.is_valid, f.date_time_end
+               FROM public.spea_service_forcevalidmachine f
+               JOIN spea_service_machine m ON f.machine_id = m.id
+               WHERE m.name = %s 
+                 AND f.is_valid = True 
+                 AND f.date_time_end >= NOW()
+               ORDER BY f.date_time_end DESC
+               LIMIT 1"""
+    
+    cur.execute(query, (machine_name,))
+    return cur.fetchone()

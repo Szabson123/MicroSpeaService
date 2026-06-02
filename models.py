@@ -14,7 +14,7 @@ class PhaseIDRequest(BaseModel):
     task_num: UUID
 
 class FullCheck(BaseModel):
-    task_num: UUID
+    task_num: UUID | None = None
     sns: List[str]
     machine_name: str
 
