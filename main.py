@@ -139,4 +139,3 @@ def check_sns(payload: FullCheck) -> List[Dict]:
 
             return response_data
         
-    

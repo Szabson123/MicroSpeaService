@@ -1,4 +1,4 @@
-from psycopg2 import sql
+from psycopg import sql
 
 def update_task_on_done(cursor, req_type: str, task_uuid: str):
     column_mapping = {
@@ -11,6 +11,8 @@ def update_task_on_done(cursor, req_type: str, task_uuid: str):
     if not column_name:
         raise ValueError(f"Nieznany typ żądania: {req_type}")
         
-    query = sql.SQL("UPDATE public.spea_service_tasknum SET {} = true WHERE unique_id = %s").format(sql.Identifier(column_name))
+    query = sql.SQL("UPDATE public.spea_service_tasknum SET {column} = true WHERE unique_id = %s").format(
+        column=sql.Identifier(column_name)
+    )
     
     cursor.execute(query, (str(task_uuid),))
