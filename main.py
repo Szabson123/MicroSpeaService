@@ -12,7 +12,7 @@ from models import BinRequest, PhaseIDRequest, FullCheck
 
 from datetime import datetime, timedelta, timezone
 from pyodbc import connect
-from typing import List, Dict
+from typing import List, Dict, Any
 import psycopg
 
 
@@ -77,20 +77,21 @@ async def check_phase(request: PhaseIDRequest):
 
 
 @app.post("/spea-serivce/check-sns/")
-def check_sns(payload: FullCheck) -> List[Dict]:
+def check_sns(payload: FullCheck) -> Dict[str, Any]:
     with psycopg.connect(CONNECTION_STRING_LOCAL_POSTGRES, row_factory=psycopg.rows.dict_row) as conn:
         with conn.cursor() as cur:
             force = check_force_validation(cur, payload.machine_name)
+            
             if force:
-                response_data = []
+                response_list = []
                 with connect(CONNECTION_STRING_POLMESPROD) as prod_conn:
                     cursor = prod_conn.cursor()
                     for sn in payload.sns:
                         single_res = process_single_msn(cursor, sn)
-                        response_data.append({sn: single_res})
-                    response_data['force_validate'] = True
-                    
-                return {'respnse_data': response_data, 'force_validate': False}
+                        response_list.append({sn: single_res})
+                
+                # Zwracamy spójną strukturę
+                return {'response_data': response_list, 'force_validate': True}
 
             task = check_task_done(cur, payload.task_num)
             if not task:
@@ -126,17 +127,13 @@ def check_sns(payload: FullCheck) -> List[Dict]:
                 )
             
             rows = check_validation(cur, payload.sns)
-            response_data = []
+            response_list = []
             for row in rows:
-                sn_key = row['sn']
-                bin_info = row['bin']
-                
-                item_structure = {
-                    sn_key: bin_info,
+                response_list.append({
+                    row['sn']: row['bin'],
                     "prev_phase": row['prev_phase'],
                     "phase_error_code": row['phase_error_code']
-                }
-                response_data.append(item_structure)
+                })
 
-            return {'respnse_data': response_data, 'force_validate': False}
+            return {'response_data': response_list, 'force_validate': False}
         
