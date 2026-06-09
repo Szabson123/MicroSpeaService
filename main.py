@@ -88,7 +88,9 @@ def check_sns(payload: FullCheck) -> List[Dict]:
                     for sn in payload.sns:
                         single_res = process_single_msn(cursor, sn)
                         response_data.append({sn: single_res})
-                return response_data
+                    response_data['force_validate'] = True
+                    
+                return {'respnse_data': response_data, 'force_validate': False}
 
             task = check_task_done(cur, payload.task_num)
             if not task:
@@ -135,7 +137,6 @@ def check_sns(payload: FullCheck) -> List[Dict]:
                     "phase_error_code": row['phase_error_code']
                 }
                 response_data.append(item_structure)
-            
 
-            return response_data
+            return {'respnse_data': response_data, 'force_validate': False}
         
