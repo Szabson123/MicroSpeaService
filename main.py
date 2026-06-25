@@ -124,11 +124,13 @@ async def check_sns(payload: FullCheck, conn: psycopg.Connection = Depends(get_d
                 detail={"error": "Machine validation not found", "code": "Machine Invalidate"}
             )
         
-        expiration_time = machine_status['time_date'] + timedelta(hours=8)
+        hours = 8
+
+        expiration_time = machine_status['time_date'] + timedelta(hours)
         if not machine_status['is_valid'] or expiration_time < datetime.now(timezone.utc):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail={"error": "Machine validation is invalid or expired", "code": "Machine Invalidate"}
+                detail={"error": f"Machine validation is invalid or expired {hours} passed", "code": "Machine Invalidate", "valid_hours": f"{hours}"}
             )
         
         rows = check_validation(cur, payload.sns)
