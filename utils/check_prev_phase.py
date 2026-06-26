@@ -10,7 +10,7 @@ def check_prev_phase_api(phase_id, end_code, sn):
         'resultType': '-1'
     }
     
-    response = requests.post(url, json=payload, timeout=5)
+    response = requests.post(url, json=payload, timeout=30)
     response = response.json()
     print(response)
     return response
