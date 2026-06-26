@@ -22,7 +22,7 @@ def check_date(cur, machine_name):
     query = """SELECT h.is_valid, h.time_date
                FROM public.spea_service_fullvalidationmachinemodel h
                JOIN spea_service_machine m ON h.machine_id = m.id
-               WHERE m.name = %s AND h.is_valid = True AND h.ended = True
+               WHERE m.name = %s AND h.is_valid = True
                ORDER BY h.time_date DESC
                LIMIT 1
     """
