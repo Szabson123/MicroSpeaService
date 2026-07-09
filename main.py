@@ -149,7 +149,8 @@ async def check_sns(payload: FullCheck, conn: psycopg.Connection = Depends(get_d
             response_list.append({
                 row['sn']: row['bin'],
                 "prev_phase": row['prev_phase'],
-                "phase_error_code": row['phase_error_code']
+                "phase_error_code": row['phase_error_code'],
+                "phase_error_num_code": row['phase_error_num_code']
             })
 
         return {'response_data': response_list, 'force_validate': False}

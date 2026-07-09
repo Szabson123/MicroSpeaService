@@ -2,12 +2,20 @@ from pyodbc import connect
 
 
 def get_all_childs(cursor, id: str):
-    query = '''SELECT TOP (1000) [Child]
-                FROM [Eclipse].[dbo].[LinkIdTraceability]
-                WHERE Container = ?'''
+    query = '''
+        SELECT [Child] AS LinkedId
+        FROM [Eclipse].[dbo].[LinkIdTraceability]
+        WHERE [Container] = ?
+        
+        UNION
+        
+        SELECT [Container] AS LinkedId
+        FROM [Eclipse].[dbo].[LinkIdTraceability]
+        WHERE [Child] = ?
+    '''
     
-    cursor.execute(query, (id, ))
-    return cursor.fetchall()
+    cursor.execute(query, (id, id))
+    return [row[0] for row in cursor.fetchall()]
 
 def get_measure_bin(cursor, checking_id):
     query = '''SELECT DISTINCT m.[Measure], m.[Item]
@@ -27,13 +35,13 @@ def process_single_msn(cursor, target_id: str):
     found_serials = {target_id}
 
     for item in data:
-        serial = item[0] if item else None
-        if not serial: continue
+        if not item:
+            continue
 
-        if len_id == 24 and target_id[:16] == serial[:16]:
-            found_serials.add(serial)
-        elif len_id < 24 and target_id[:11] == serial[:11]:
-            found_serials.add(serial)
+        if len_id == 24 and target_id[:16] == item[:16]:
+            found_serials.add(item)
+        elif len_id < 24 and target_id[:11] == item[:11]:
+            found_serials.add(item)
 
     transformed_list = []
     for sn in found_serials:

@@ -10,7 +10,7 @@ def check_task_done(cur, task_num):
     return cur.fetchone()
 
 def check_validation(cur, sn):
-    query = """ SELECT DISTINCT ON (sn) sn, bin, prev_phase, phase_error_code 
+    query = """ SELECT DISTINCT ON (sn) sn, bin, prev_phase, phase_error_code, phase_error_num_code
                 FROM public.spea_service_testedsn
                 WHERE sn = ANY(%s)
                 ORDER BY sn, date_time DESC
