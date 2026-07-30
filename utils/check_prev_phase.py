@@ -12,5 +12,4 @@ def check_prev_phase_api(phase_id, end_code, sn):
     
     response = requests.post(url, json=payload, timeout=30)
     response = response.json()
-    print(response)
     return response
