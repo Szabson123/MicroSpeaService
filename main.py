@@ -154,3 +154,34 @@ async def check_sns(payload: FullCheck, conn: psycopg.Connection = Depends(get_d
             })
 
         return {'response_data': response_list, 'force_validate': False}
+
+
+@app.get('/spea-serivce/get-machine-status-end/')
+def get_machine_status(machine_name, conn: psycopg.Connection = Depends(get_db)):
+    with conn.cursor() as cur:
+        machine_status = check_date(cur, machine_name)
+        if not machine_status:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"error": "Machine validation not found", "code": "Machine Invalidate"}
+            )
+        
+        hours = 8
+        db_time = machine_status['time_date']
+
+        if db_time.tzinfo is None:
+            db_time = db_time.replace(tzinfo=timezone.utc)
+
+        expiration_time = db_time + timedelta(hours=hours)
+
+        if not machine_status['is_valid'] or expiration_time < datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "error": f"Machine validation is invalid or expired {hours} passed", 
+                    "code": "Machine Invalidate", 
+                    "valid_hours": f"{hours}"
+                }
+            )
+        
+    return {'response_data': 'machine_valid'}
