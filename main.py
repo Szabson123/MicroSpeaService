@@ -166,13 +166,15 @@ def get_machine_status(machine_name, conn: psycopg.Connection = Depends(get_db))
                 detail={"error": "Machine validation not found", "code": "Machine Invalidate"}
             )
         
-        hours = 8
+        hours = 7
+        minutes = 55
+
         db_time = machine_status['time_date']
 
         if db_time.tzinfo is None:
             db_time = db_time.replace(tzinfo=timezone.utc)
 
-        expiration_time = db_time + timedelta(hours=hours)
+        expiration_time = db_time + timedelta(hours=hours, minutes=minutes)
 
         if not machine_status['is_valid'] or expiration_time < datetime.now(timezone.utc):
             raise HTTPException(
