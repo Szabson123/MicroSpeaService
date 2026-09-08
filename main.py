@@ -159,6 +159,11 @@ async def check_sns(payload: FullCheck, conn: psycopg.Connection = Depends(get_d
 @app.get('/spea-serivce/get-machine-status-end/')
 def get_machine_status(machine_name, conn: psycopg.Connection = Depends(get_db)):
     with conn.cursor() as cur:
+        force = check_force_validation(cur, machine_name)
+        
+        if force:
+            return {'response_data': 'machine_valid'}
+
         machine_status = check_date(cur, machine_name)
         if not machine_status:
             raise HTTPException(
