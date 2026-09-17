@@ -70,7 +70,7 @@ logging.basicConfig(
 )
 
 @app.post("/spea-serivce/check-phase/")
-async def check_phase(request: PhaseIDRequest, conn: psycopg.Connection = Depends(get_db)):
+def check_phase(request: PhaseIDRequest, conn: psycopg.Connection = Depends(get_db)):
     type_of_req = 'phase_id'
     api_responses = {}
 
@@ -84,7 +84,8 @@ async def check_phase(request: PhaseIDRequest, conn: psycopg.Connection = Depend
 
     with conn.cursor() as cursor:
         for key, resp in api_responses.items():
-            if resp is None:
+            if not resp or not isinstance(resp, dict):
+                logger.warning("Pusta lub niepoprawna odpowiedź API dla SN %s: %s", key, resp)
                 continue
                 
             try:
@@ -93,10 +94,11 @@ async def check_phase(request: PhaseIDRequest, conn: psycopg.Connection = Depend
                 insert_prev_phase_to_posgres(cursor, key, return_code, return_code_desc)
             except Exception as e:
                 logger.error("Blad zapisu do bazy danych dla SN %s: %s", key, e)
-                continue
         
         conn.commit()
+        logger.info("Oznaczanie zadania %s jako zrobione", request.task_num)
         update_task_on_done(cursor, type_of_req, request.task_num)
+        conn.commit()
         
     return {"status": "success"}
 
