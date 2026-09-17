@@ -70,7 +70,7 @@ async def check_phase(request: PhaseIDRequest, conn: psycopg.Connection = Depend
         try:
             api_responses[sn] = check_prev_phase_api(request.phase_id, end_code, sn)
         except Exception as e:
-            print(f"Błąd podczas odpytywania API dla SN {sn}: {e}")
+            print(f"Blad podczas odpytywania API dla SN {sn}: {e}")
             api_responses[sn] = None
 
     with conn.cursor() as cursor:
@@ -83,7 +83,7 @@ async def check_phase(request: PhaseIDRequest, conn: psycopg.Connection = Depend
                 return_code_desc = resp.get("returnCodeDescription")
                 insert_prev_phase_to_posgres(cursor, key, return_code, return_code_desc)
             except Exception as e:
-                print(f"Błąd zapisu do bazy danych dla SN {key}: {e}")
+                print(f"Blad zapisu do bazy danych dla SN {key}: {e}")
                 continue
         
         conn.commit()

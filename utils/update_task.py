@@ -9,7 +9,7 @@ def update_task_on_done(cursor, req_type: str, task_uuid: str):
     column_name = column_mapping.get(req_type)
     
     if not column_name:
-        raise ValueError(f"Nieznany typ żądania: {req_type}")
+        raise ValueError(f"Nieznany typ zadania: {req_type}")
         
     query = sql.SQL("UPDATE public.spea_service_tasknum SET {column} = true WHERE unique_id = %s").format(
         column=sql.Identifier(column_name)

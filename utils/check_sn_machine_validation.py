@@ -34,8 +34,8 @@ def check_force_validation(cur, machine_name):
                FROM public.spea_service_forcevalidmachine f
                JOIN spea_service_machine m ON f.machine_id = m.id
                WHERE m.name = %s 
-                 AND f.is_valid = True 
-                 AND f.date_time_end >= NOW()
+                AND f.is_valid = True 
+                AND f.date_time_end >= NOW()
                ORDER BY f.date_time_end DESC
                LIMIT 1"""
     
