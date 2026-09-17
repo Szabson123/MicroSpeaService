@@ -62,15 +62,23 @@ async def bin_list_checker(requests: BinRequest, conn: psycopg.Connection = Depe
             
     return final_result
 
+import logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+
 @app.post("/spea-serivce/check-phase/")
 async def check_phase(request: PhaseIDRequest, conn: psycopg.Connection = Depends(get_db)):
     type_of_req = 'phase_id'
     api_responses = {}
+    
     for sn, end_code in request.sns.items():
         try:
             api_responses[sn] = check_prev_phase_api(request.phase_id, end_code, sn)
         except Exception as e:
-            print(f"Blad podczas odpytywania API dla SN {sn}: {e}")
+            logger.error("Blad podczas odpytywania API dla SN %s: %s", sn, e)
             api_responses[sn] = None
 
     with conn.cursor() as cursor:
@@ -83,11 +91,12 @@ async def check_phase(request: PhaseIDRequest, conn: psycopg.Connection = Depend
                 return_code_desc = resp.get("returnCodeDescription")
                 insert_prev_phase_to_posgres(cursor, key, return_code, return_code_desc)
             except Exception as e:
-                print(f"Blad zapisu do bazy danych dla SN {key}: {e}")
+                logger.error("Blad zapisu do bazy danych dla SN %s: %s", key, e)
                 continue
         
         conn.commit()
         update_task_on_done(cursor, type_of_req, request.task_num)
+        
     return {"status": "success"}
 
 @app.post("/spea-serivce/check-sns/")
