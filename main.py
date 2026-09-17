@@ -85,20 +85,23 @@ def check_phase(request: PhaseIDRequest, conn: psycopg.Connection = Depends(get_
     with conn.cursor() as cursor:
         for key, resp in api_responses.items():
             if not resp or not isinstance(resp, dict):
-                logger.warning("Pusta lub niepoprawna odpowiedź API dla SN %s: %s", key, resp)
+                logger.warning("[SN %s] Pusta odpowiedz API", key)
                 continue
-                
+            
             try:
-                return_code = resp.get("returnCode")
-                return_code_desc = resp.get("returnCodeDescription")
-                insert_prev_phase_to_posgres(cursor, key, return_code, return_code_desc)
+                with conn.transaction():
+                    return_code = resp.get("returnCode")
+                    return_code_desc = resp.get("returnCodeDescription")
+                    insert_prev_phase_to_posgres(cursor, key, return_code, return_code_desc)
             except Exception as e:
-                logger.error("Blad zapisu do bazy danych dla SN %s: %s", key, e)
-        
-        conn.commit()
-        logger.info("Oznaczanie zadania %s jako zrobione", request.task_num)
-        update_task_on_done(cursor, type_of_req, request.task_num)
-        conn.commit()
+                logger.error("[SN %s] BŁĄD ZAPISU DO POSTGRES: %s", key, e, exc_info=True)
+
+        try:
+            with conn.transaction():
+                logger.info("[TASK %s] Wykonuje update_task_on_done", request.task_num)
+                update_task_on_done(cursor, type_of_req, request.task_num)
+        except Exception as e:
+            logger.error("[TASK %s] BŁĄD AKTUALIZACJI TASKU: %s", request.task_num, e, exc_info=True)
         
     return {"status": "success"}
 
