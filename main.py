@@ -75,7 +75,7 @@ async def check_phase(request: PhaseIDRequest, conn: psycopg.Connection = Depend
     api_responses = {}
 
     for sn, end_code in request.sns.items():
-        logger.info("Informacja", sn, e)
+        logger.info("Informacja", sn)
         try:
             api_responses[sn] = check_prev_phase_api(request.phase_id, end_code, sn)
         except Exception as e:
